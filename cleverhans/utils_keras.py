@@ -4,9 +4,10 @@ Model construction utilities based on keras
 from .model import Model
 
 import keras
+from keras import regularizers, optimizers
 from keras.utils import np_utils
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten
+from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization, MaxPooling2D
 
 from distutils.version import LooseVersion
 if LooseVersion(keras.__version__) >= LooseVersion('2.0.0'):
@@ -87,6 +88,51 @@ def cnn_model(logits=False, input_ph=None, img_rows=28, img_cols=28,
 
     for layer in layers:
         model.add(layer)
+
+    if logits:
+        logits_tensor = model(input_ph)
+    model.add(Activation('softmax'))
+
+    if logits:
+        return model, logits_tensor
+    else:
+        return model
+
+
+def cifar_10_cnn_model(logits=False, input_ph=None, img_rows=32, img_cols=32,
+                       channels=3, nb_filters=64, nb_classes=10):
+    baseMapNum = 32
+    weight_decay = 1e-4
+    model = Sequential()
+    model.add(Conv2D(baseMapNum, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay), input_shape=(img_rows, img_cols, channels)))
+    model.add(Activation('relu'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(baseMapNum, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay)))
+    model.add(Activation('relu'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Dropout(0.2))
+
+    model.add(Conv2D(2*baseMapNum, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay)))
+    model.add(Activation('relu'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(2*baseMapNum, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay)))
+    model.add(Activation('relu'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Dropout(0.3))
+
+    model.add(Conv2D(4*baseMapNum, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay)))
+    model.add(Activation('relu'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(4*baseMapNum, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay)))
+    model.add(Activation('relu'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Dropout(0.4))
+
+    model.add(Flatten())
+    model.add(Dense(nb_classes))
 
     if logits:
         logits_tensor = model(input_ph)
